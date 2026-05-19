@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReceiptMind</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f4f1ec;
+      --surface: #ffffff;
+      --surface-2: #faf8f5;
+      --ink: #1a1714;
+      --muted: #6b6560;
+      --border: #e8e2da;
+      --accent: #0d6e4f;
+      --accent-soft: #e3f3ec;
+      --accent-hover: #0a5c42;
+      --danger: #b42318;
+      --danger-soft: #fef3f2;
+      --warn: #b54708;
+      --shadow: 0 1px 2px rgba(26, 23, 20, 0.06), 0 8px 24px rgba(26, 23, 20, 0.06);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.25rem 4rem;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .brand h1 {
+      font-family: "Instrument Serif", Georgia, serif;
+      font-size: clamp(2rem, 5vw, 2.75rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    .brand p {
+      color: var(--muted);
+      margin-top: 0.35rem;
+      font-size: 0.95rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .pill.offline {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .pill.offline::before { background: var(--danger); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.35rem;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .stat-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 0.25rem;
+      letter-spacing: -0.02em;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, transform 0.15s;
+      background: var(--surface-2);
+      position: relative;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .upload-zone.disabled {
+      pointer-events: none;
+      opacity: 0.65;
+    }
+
+    .upload-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 1rem;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .upload-zone strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .upload-zone span {
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    #fileInput { display: none; }
+
+    .preview-wrap {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .preview-wrap.visible { display: block; }
+
+    .preview-wrap img {
+      max-width: 100%;
+      max-height: 140px;
+      border-radius: var(--radius-sm);
+      object-fit: contain;
+      border: 1px solid var(--border);
+    }
+
+    .status-banner {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      display: none;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .status-banner.visible { display: flex; }
+
+    .status-banner.loading {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .status-banner.success {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .status-banner.error {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #serverHint {
+      margin-top: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-sm);
+      background: var(--danger-soft);
+      color: var(--danger);
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    #serverHint.visible { display: block; }
+
+    .latest-scan {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .latest-scan.visible { display: block; }
+
+    .receipt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .receipt-list::-webkit-scrollbar { width: 6px; }
+    .receipt-list::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    .receipt-card {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem 1rem;
+      padding: 1rem 1.1rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-2);
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .receipt-card:hover {
+      border-color: #d4cdc4;
+      box-shadow: 0 4px 12px rgba(26, 23, 20, 0.05);
+    }
+
+    .receipt-card.highlight {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .receipt-top {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      grid-column: 1 / -1;
+    }
+
+    .receipt-card .merchant {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .category {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .cat-food { background: #fff4e5; color: #b54708; }
+    .cat-groceries { background: #e8f5e9; color: #2e7d32; }
+    .cat-transport { background: #e3f2fd; color: #1565c0; }
+    .cat-shopping { background: #f3e5f5; color: #7b1fa2; }
+    .cat-healthcare { background: #fce4ec; color: #c2185b; }
+    .cat-entertainment { background: #fff3e0; color: #ef6c00; }
+    .cat-other { background: #f5f5f5; color: #616161; }
+
+    .receipt-card .meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+      grid-column: 1;
+    }
+
+    .receipt-card .amount {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      align-self: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted);
+    }
+
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
+
+    .category-breakdown {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .category-breakdown h3 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.6rem;
+    }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.45rem;
+      font-size: 0.8rem;
+    }
+
+    .bar-row .name { flex: 0 0 110px; color: var(--muted); }
+    .bar-row .track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-row .fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.4s ease;
+    }
+
+    .bar-row .amt { flex: 0 0 52px; text-align: right; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <h1>ReceiptMind</h1>
+        <p>Upload a receipt — Gemma 4 extracts merchant, total, and category.</p>
+      </div>
+      <span class="pill" id="serverPill">Checking server…</span>
+    </header>
+
+    <section class="stats">
+      <div class="stat-card">
+        <div class="label">Total spent</div>
+        <div class="value" id="statTotal">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Receipts</div>
+        <div class="value" id="statCount">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This month</div>
+        <div class="value" id="statMonth">$0.00</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Scan receipt</h2>
+        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload receipt image">
+          <div class="upload-icon">📷</div>
+          <strong>Drop image here or click to browse</strong>
+          <span>JPG, PNG · powered by Gemma 4</span>
+          <input type="file" id="fileInput" accept="image/*" />
+        </div>
+        <div class="preview-wrap" id="previewWrap">
+          <img id="previewImg" alt="Receipt preview" />
+        </div>
+        <div class="status-banner" id="statusBanner" role="status"></div>
+        <p id="serverHint"></p>
+        <div class="latest-scan" id="latestScan"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Your receipts</h2>
+        <div id="receipts" class="receipt-list"></div>
+        <div class="category-breakdown" id="categoryBreakdown" style="display:none">
+          <h3>By category</h3>
+          <div id="categoryBars"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const uploadZone = document.getElementById("uploadZone");
+    const statusBanner = document.getElementById("statusBanner");
+    const previewWrap = document.getElementById("previewWrap");
+    const previewImg = document.getElementById("previewImg");
+    const serverPill = document.getElementById("serverPill");
+    const serverHint = document.getElementById("serverHint");
+
+    let uploadInProgress = false;
+    let cooldownUntil = 0;
+    let cooldownTimer = null;
+
+    uploadZone.addEventListener("click", () => {
+      if (!uploadZone.classList.contains("disabled")) fileInput.click();
+    });
+
+    uploadZone.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    ["dragenter", "dragover"].forEach((ev) => {
+      uploadZone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        uploadZone.classList.add("dragover");
+      });
+    });
+
+    ["dragleave", "drop"].forEach((ev) => {
+      uploadZone.addEventListener(ev, (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove("dragover");
+      });
+    });
+
+    uploadZone.addEventListener("drop", (e) => {
+      const file = e.dataTransfer?.files?.[0];
+      if (file && file.type.startsWith("image/")) {
+        uploadFile(file);
+      }
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (file) uploadFile(file);
+    });
+
+    function escapeHtml(s) {
+      const d = document.createElement("div");
+      d.textContent = s == null ? "" : String(s);
+      return d.innerHTML;
+    }
+
+    function formatMoney(n) {
+      const x = parseFloat(n);
+      return Number.isFinite(x)
+        ? x.toLocaleString("en-US", { style: "currency", currency: "USD" })
+        : "$0.00";
+    }
+
+    function categoryClass(cat) {
+      const c = (cat || "").toLowerCase();
+      if (c.includes("food") || c.includes("dining")) return "cat-food";
+      if (c.includes("grocer")) return "cat-groceries";
+      if (c.includes("transport")) return "cat-transport";
+      if (c.includes("shop")) return "cat-shopping";
+      if (c.includes("health")) return "cat-healthcare";
+      if (c.includes("entertain")) return "cat-entertainment";
+      return "cat-other";
+    }
+
+    function receiptCardHtml(r, highlight = false) {
+      return `
+        <article class="receipt-card${highlight ? " highlight" : ""}">
+          <div class="receipt-top">
+            <span class="merchant">${escapeHtml(r.merchant)}</span>
+            <span class="category ${categoryClass(r.category)}">${escapeHtml(r.category)}</span>
+          </div>
+          <div class="meta">${escapeHtml(r.date)}${r.tax != null ? ` · Tax ${formatMoney(r.tax)}` : ""}</div>
+          <div class="amount">${formatMoney(r.amount)}</div>
+        </article>
+      `;
+    }
+
+    function setStatus(type, message, loading = false) {
+      statusBanner.className = `status-banner visible ${type}`;
+      statusBanner.innerHTML = loading
+        ? `<span class="spinner"></span><span>${escapeHtml(message)}</span>`
+        : `<span>${escapeHtml(message)}</span>`;
+    }
+
+    function clearStatus() {
+      statusBanner.className = "status-banner";
+      statusBanner.innerHTML = "";
+    }
+
+    function showPreview(fileOrBlob) {
+      const url = URL.createObjectURL(fileOrBlob);
+      previewImg.src = url;
+      previewWrap.classList.add("visible");
+      previewImg.onload = () => URL.revokeObjectURL(url);
+    }
+
+    function startCooldown(seconds) {
+      cooldownUntil = Date.now() + seconds * 1000;
+      uploadZone.classList.add("disabled");
+      if (cooldownTimer) clearInterval(cooldownTimer);
+      cooldownTimer = setInterval(() => {
+        const left = Math.ceil((cooldownUntil - Date.now()) / 1000);
+        if (left <= 0) {
+          clearInterval(cooldownTimer);
+          cooldownTimer = null;
+          if (!uploadInProgress) uploadZone.classList.remove("disabled");
+          return;
+        }
+        setStatus("error", `Gemma 4 busy — wait ${left}s before next upload`);
+      }, 1000);
+    }
+
+    /** Shrink image before upload — less payload, fewer rate-limit hits; still Gemma 4 on server */
+    function compressImage(file, maxSide = 1280, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          let { width, height } = img;
+          if (width > maxSide || height > maxSide) {
+            if (width > height) {
+              height = Math.round((height * maxSide) / width);
+              width = maxSide;
+            } else {
+              width = Math.round((width * maxSide) / height);
+              height = maxSide;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error("Could not compress image"));
+                return;
+              }
+              resolve(
+                new File([blob], file.name.replace(/\.\w+$/, ".jpg"), {
+                  type: "image/jpeg",
+                  lastModified: Date.now()
+                })
+              );
+            },
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Could not load image"));
+        };
+        img.src = url;
+      });
+    }
+
+    async function uploadFile(file) {
+      if (uploadInProgress) return;
+      if (Date.now() < cooldownUntil) {
+        const left = Math.ceil((cooldownUntil - Date.now()) / 1000);
+        setStatus("error", `Please wait ${left}s — Gemma 4 free tier needs a short pause`);
+        return;
+      }
+
+      uploadInProgress = true;
+      uploadZone.classList.add("disabled");
+
+      let uploadBlob = file;
+      try {
+        uploadBlob = await compressImage(file);
+        showPreview(uploadBlob);
+      } catch {
+        showPreview(file);
+      }
+
+      setStatus(
+        "loading",
+        "Gemma 4 is reading your receipt… (auto-retries if busy, up to ~2 min)",
+        true
+      );
+
+      const formData = new FormData();
+      formData.append("receipt", uploadBlob);
+
+      try {
+        const res = await fetch("/upload", { method: "POST", body: formData });
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          const hint =
+            res.status === 404
+              ? " Wrong server on port 3000 — run: node server.js"
+              : "";
+          setStatus("error", `Upload failed (${res.status}): not JSON${hint}`);
+          return;
+        }
+
+        if (!res.ok || !data.success) {
+          const msg = data.error || data.message || JSON.stringify(data);
+          if (res.status === 429 || data.retryable) {
+            startCooldown(90);
+            setStatus(
+              "error",
+              data.error ||
+                "Gemma 4 is rate-limited. Wait ~90s, then try one receipt at a time."
+            );
+          } else {
+            setStatus("error", `${res.status}: ${msg}`);
+          }
+          return;
+        }
+
+        setStatus("success", "Receipt scanned and saved!");
+        document.getElementById("latestScan").innerHTML =
+          `<h2 style="font-size:0.85rem;margin-bottom:0.5rem;color:var(--muted)">Latest scan</h2>` +
+          receiptCardHtml(data.receipt, true);
+        document.getElementById("latestScan").classList.add("visible");
+
+        await loadReceipts();
+        setTimeout(clearStatus, 4000);
+      } catch (e) {
+        setStatus("error", `Network error: ${e.message}`);
+      } finally {
+        uploadInProgress = false;
+        fileInput.value = "";
+        if (Date.now() >= cooldownUntil) {
+          uploadZone.classList.remove("disabled");
+        }
+      }
+    }
+
+    function updateStats(receipts) {
+      const total = receipts.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+      const now = new Date();
+      const monthTotal = receipts.reduce((s, r) => {
+        const d = r.date ? new Date(r.date) : null;
+        if (d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()) {
+          return s + (parseFloat(r.amount) || 0);
+        }
+        return s;
+      }, 0);
+
+      document.getElementById("statTotal").textContent = formatMoney(total);
+      document.getElementById("statCount").textContent = String(receipts.length);
+      document.getElementById("statMonth").textContent = formatMoney(monthTotal);
+
+      const byCat = {};
+      receipts.forEach((r) => {
+        const cat = r.category || "Other";
+        byCat[cat] = (byCat[cat] || 0) + (parseFloat(r.amount) || 0);
+      });
+
+      const breakdown = document.getElementById("categoryBreakdown");
+      const bars = document.getElementById("categoryBars");
+      const entries = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+
+      if (entries.length === 0) {
+        breakdown.style.display = "none";
+        return;
+      }
+
+      breakdown.style.display = "block";
+      const max = Math.max(...entries.map((e) => e[1]), 1);
+      bars.innerHTML = entries
+        .map(
+          ([cat, amt]) => `
+        <div class="bar-row">
+          <span class="name">${escapeHtml(cat)}</span>
+          <div class="track"><div class="fill" style="width:${((amt / max) * 100).toFixed(0)}%"></div></div>
+          <span class="amt">${formatMoney(amt)}</span>
+        </div>
+      `
+        )
+        .join("");
+    }
+
+    async function loadReceipts() {
+      const box = document.getElementById("receipts");
+      try {
+        const res = await fetch("/receipts");
+        const receipts = await res.json();
+
+        if (!Array.isArray(receipts)) {
+          const msg = receipts.error || JSON.stringify(receipts);
+          box.innerHTML = `<div class="empty-state"><p>Could not load: ${escapeHtml(msg)}</p></div>`;
+          return;
+        }
+
+        updateStats(receipts);
+
+        if (receipts.length === 0) {
+          box.innerHTML = `
+            <div class="empty-state">
+              <div class="icon">🧾</div>
+              <p><strong>No receipts yet</strong></p>
+              <p style="margin-top:0.35rem">Upload your first receipt to see it here.</p>
+            </div>`;
+          return;
+        }
+
+        box.innerHTML = receipts.map((r) => receiptCardHtml(r)).join("");
+      } catch (e) {
+        box.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`;
+      }
+    }
+
+    async function checkServer() {
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+        if (res.ok && data.app === "ReceiptMind") {
+          serverPill.textContent = data.database ? "Connected · DB ready" : "Connected · no DB";
+          serverPill.classList.remove("offline");
+          return;
+        }
+        throw new Error("wrong app");
+      } catch {
+        serverPill.textContent = "Server offline";
+        serverPill.classList.add("offline");
+        serverHint.classList.add("visible");
+        serverHint.textContent =
+          "Start the backend: cd gemma4-app && npm start";
+      }
+    }
+
+    checkServer();
+    loadReceipts();
+  </script>
+</body>
+</html>
